@@ -1,5 +1,6 @@
 use os;
 use fmt;
+use engine;
 
 
 export fn company(args: []str) void = {
@@ -21,12 +22,21 @@ export fn company(args: []str) void = {
 
 
 fn list(args: []str) void = {
-    fmt::println("Company list called!")!;
+    let flags: []engine::Flag = engine::parseflags(args)!;
+
+    match (engine::checkflag(flags, "test", 't')) {
+            case let f: engine::Flag => {
+                fmt::printfln("Flag test trouvé !")!;
+                fmt::printfln("Valeur : {}", f.input)!;
+            };
+    };
 };
 
 
 
 fn add(args: []str) void = {
+
+
     fmt::println("Company add called!")!;
 };
 

@@ -12,4 +12,6 @@ export type Command = struct {
 
 export type Flag = struct {
     name: str,
+    short: rune,
+    input: str,
 };
