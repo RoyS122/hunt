@@ -18,6 +18,7 @@ export fn main() void = {
         case "interaction", "i" => commands::interaction(os::args[1..]);
         case "next", "n" => commands::next(os::args[1..]);
         case "due", "d" => commands::due(os::args[1..]);
+        case "init"  => commands::huntinit(os::args[1..]);
         case => commands::help(os::args[1..]);
     };
 
