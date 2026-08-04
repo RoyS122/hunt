@@ -1,18 +1,18 @@
-export const MAGIC [4]u8 = ['H','U', 'N', 'T'];
+export const MAGIC: [4]u8 = ['H','U', 'N', 'T'];
 
 export type ChunkHeader = struct {
     chunksize: u32,
     id: u32,
 };
 
-export type CompanyStatus = u8 enum {
+export type CompanyStatus =  enum u8{
     PROSPECT,
     CLIENT,
     STALE,
     DEAD,
 };
 
-export type OpportunityStage = u8 enum {
+export type OpportunityStage =  enum u8{
     DISCOVERY,
     PROPOSAL,
     NEGOTIATION,
@@ -22,7 +22,7 @@ export type OpportunityStage = u8 enum {
 
 
 export type Tag = struct {
-    size: u8,
+    titlesize: u8,
     title: str,
 };
 
