@@ -1,6 +1,6 @@
 export const MAGIC: [4]u8 = ['H','U', 'N', 'T'];
 export const LATEST: [3]u8 = [0, 1, 0];
-export const FILE_HEADER: [7]u8 = ['H', 'U', 'N', 'T', 0, 1, 0];
+export const FILE_HEADER: [12]u8 = ['H', 'U', 'N', 'T', 0, 1, 0, 0, 0, 0, 0, 0];
 export const HUNT_GLOBAL_DIR: str = ".hunt/";
 export const HUNT_DIRS: [5]str = ["opportunity/", "interaction/", "action/", "contact/", "company/"];
 export const INDEX_FILE: str = "index.ht";
@@ -8,6 +8,7 @@ export const INDEX_FILE: str = "index.ht";
 export type FileHeader = struct {
     magic: [4]u8,
     version: [3]u8,
+    filelength: u32,
 };
 
 export type ChunkHeader = struct {
@@ -50,7 +51,7 @@ export type Company = struct {
     tags: []Tag,
 
     status: CompanyStatus,
-    created_at: u64,
+    created_at: i64,
 };
 
 export type Contact = struct {

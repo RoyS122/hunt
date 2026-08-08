@@ -35,7 +35,7 @@ fn list(args: []str) void = {
 
 
 fn add(args: []str) void = {
-    fmt::println("Company add called!")!;
+    fmt::println("company add")!;
 };
 
 
