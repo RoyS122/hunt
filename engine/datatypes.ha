@@ -1,6 +1,8 @@
 export const MAGIC: [4]u8 = ['H','U', 'N', 'T'];
 export const LATEST: [3]u8 = [0, 1, 0];
+
 export const FILE_HEADER: [12]u8 = ['H', 'U', 'N', 'T', 0, 1, 0, 0, 0, 0, 0, 0];
+
 export const HUNT_GLOBAL_DIR: str = ".hunt/";
 export const HUNT_DIRS: [5]str = ["opportunity/", "interaction/", "action/", "contact/", "company/"];
 export const INDEX_FILE: str = "index.hti";
