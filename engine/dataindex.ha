@@ -6,5 +6,5 @@ export type CompanyIndex = struct {
     name: str,
 
     status: CompanyStatus,
-    created_at: u64,
+    created_at: i64,
 };
