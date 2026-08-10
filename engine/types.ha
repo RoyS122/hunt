@@ -15,3 +15,5 @@ export type Flag = struct {
     short: rune,
     input: str,
 };
+
+export type CompanyQuery = (u32|str);
