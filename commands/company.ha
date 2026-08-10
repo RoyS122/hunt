@@ -79,8 +79,6 @@ fn edit(args: []str) void = {
 
 
 fn show(args: []str) void = {
-    fmt::println("Company show called!")!;
-
     if(len(args) < 2) {
         fmt::println("You should give a name or an id for the company to show.")!;
         return;
@@ -98,14 +96,14 @@ fn show(args: []str) void = {
 
     let c: engine::Company = match (engine::companyGet(cquery)) {
         case let c: engine::Company => yield c;
-        case => {
+        case void => {
             fmt::println("Company not recognized (Not registered yet or wrong name or id).")!;
             return;
         };
     };
     let tagstr: str = "";
     for(let tag .. c.tags) {
-        tagstr = strings::concat(tagstr, fmt::asprintf("      - {}\n", tag.title)!)!;
+        tagstr = strings::concat(tagstr, fmt::asprintf("\n      - {}", tag.title)!)!;
     };
     let statusstr: str = "";
     if(c.status: u8 < 4) {

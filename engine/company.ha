@@ -74,6 +74,7 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
     company.adress = adress;
 
     let tags: []str = strings::split(tags_in, ",")!;
+    // fmt::println(tags)!;
     let tagstructs: []Tag = [];
     let totaltagsize: u64 = 0;
     for(let t .. tags) {
@@ -81,6 +82,7 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
             continue;
         };
         let ntag: Tag = Tag{titlesize = len(t): u8, title = t};
+        append(tagstructs, ntag)!;
         totaltagsize += 1 + len(t);
     };
 
@@ -106,6 +108,7 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
     let newcompanyindexbytes: []u8 = companyindexToBytes(&cindex);
     defer free(newcompanyindexbytes);
     append(filebytes, newcompanyindexbytes...)!;
+    endian::leputu32(filebytes[7..11], companylength + 1);
     let indexfile: io::file = os::open(target_path, fs::flag::WRONLY)!;
 
     fmt::println(target_path)!;
@@ -215,6 +218,9 @@ export fn companyToBytes(c: *Company) []u8 = {
     buff[cursor..cursor + c.name_size] = strings::toutf8(c.name);
     cursor += c.name_size;
 
+    endian::leputu16(buff[cursor..cursor+2], c.adress_size);
+    cursor += 2;
+
     buff[cursor..cursor + c.adress_size] = strings::toutf8(c.adress);
     cursor += c.adress_size;
 
@@ -284,13 +290,13 @@ export fn companyGet(cquery: CompanyQuery) (Company | void) = {
                 let nsize: u8 = fb[cursor+8];
                 let name: str = strings::fromutf8_unsafe(fb[cursor+9..cursor + 9 + nsize]);
                 if (normalize(name) == nsq) {
-                    yield getCompanyDetails(endian::legetu32(fb[cursor+4..cursor]), name);
+                    return getCompanyDetails(endian::legetu32(fb[cursor+4..cursor+8]), name);
                 };
             };
         };
         case let uq: u32 => {
             if (uq >= entrycount) {
-                yield;
+                return;
             };
             for(let i: size = 0; i < uq; i += 1) {
                 let csize: u32 = endian::legetu32(fb[cursor.. cursor + 4]);
@@ -298,7 +304,7 @@ export fn companyGet(cquery: CompanyQuery) (Company | void) = {
             };
             let nsize: u8 = fb[cursor+8];
             let name: str = strings::fromutf8_unsafe(fb[cursor+9..cursor + 9 + nsize]);
-            yield getCompanyDetails(uq, name);
+            return getCompanyDetails(uq, name);
         };
     };
 };
@@ -309,7 +315,6 @@ export fn getCompanyDetails(id: u32, name: str) (Company | void) = {
         case let b: path::buffer => yield b;
         case => return;
     };
-
 
     let fb: []u8 = match(readfile(path::string(&indexpath))) {
         case let b: []u8 => yield b;
@@ -333,11 +338,13 @@ export fn getCompanyDetails(id: u32, name: str) (Company | void) = {
     c.tags_length = fb[cursor];
     cursor += 1;
     c.tags = alloc([Tag{...}...],  c.tags_length)!;
+
     for(let i: size = 0; i < c.tags_length; i += 1) {
         c.tags[i].titlesize = fb[cursor];
-        c.tags[i].title = strings::fromutf8_unsafe(fb[cursor + 1.. cursor +1 + c.tags[i].titlesize]);
+        c.tags[i].title = strings::fromutf8_unsafe(fb[cursor + 1.. cursor + 1 + c.tags[i].titlesize]);
         cursor += 1 + c.tags[i].titlesize;
     };
+
     c.status = fb[cursor]: CompanyStatus;
     cursor += 1;
     c.created_at = endian::legetu64(fb[cursor..cursor+8]): i64;

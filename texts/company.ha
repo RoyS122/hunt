@@ -1,9 +1,8 @@
 export const SHOW_COMPANY: str = `Company info of {} ---
     id: {}
     adress: {}
-    tags:
-        {}
+    tags:{}
     status: {}
     creation date:  {}
-    ---
+---
 `;
