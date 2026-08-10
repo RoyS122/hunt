@@ -25,13 +25,36 @@ export fn company(args: []str) void = {
 
 
 fn list(args: []str) void = {
-    let flags: []engine::Flag = engine::parseflags(args)!;
 
-    match (engine::checkflag(flags, "test", 't')) {
-        case let f: engine::Flag => {
-            fmt::printfln("Flag test trouvé !")!;
-            fmt::printfln("Valeur : {}", f.input)!;
+     let flags: []engine::Flag = engine::parseflags(args)!;
+     let onlystatus: u8 = 255;
+     match (engine::checkflag(flags, "status", 's')) {
+         case let f: engine::Flag => {
+            onlystatus = switch(f.input) {
+                case "PROSPECT", "P", "p", "prospect" => yield engine::CompanyStatus::PROSPECT: u8;
+                case "CLIENT", "C", "c", "client" => yield engine::CompanyStatus::CLIENT: u8;
+                case "STALE", "S", "s", "stale" => yield engine::CompanyStatus::STALE: u8;
+                case "DEAD", "D", "d", "dead" => yield engine::CompanyStatus::DEAD: u8;
+                case => yield 255;
+            };
+
+         };
+        case => yield;
+     };
+
+    let companies: []engine::CompanyIndex = engine::getCompanyIndexList();
+    fmt::println("List of the companies:\n ID | Company Name | Status")!;
+    for (let c .. companies) {
+        let company_status_str: str = "";
+        if(c.status < 4) {
+            company_status_str = engine::CompanyStatusText[c.status: u8];
         };
+        fmt::println("cstatus ", c.status: u8, onlystatus)!;
+        if (onlystatus != 255 && c.status: u8 != onlystatus) {
+            continue;
+        };
+
+        fmt::println(c.head.id, " | ", c.name, " | ", company_status_str)!;
     };
 };
 

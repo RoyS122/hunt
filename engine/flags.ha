@@ -7,15 +7,13 @@ export fn parseflags(args: []str) ([]Flag | nomem) = {
     let started: bool = false;
 
     for(let a .. args) {
-        if(len(a) < 2) {
-            continue;
-        };
 
-        if(!strings::hasprefix(a, '-')) {
+        if(!strings::hasprefix(a, '-') ||len(a) < 2) {
             if (started) {
                 flags[len(flags) - 1].input = a;
             };
             started = false;
+
             continue;
         };
 

@@ -350,3 +350,52 @@ export fn getCompanyDetails(id: u32, name: str) (Company | void) = {
     c.created_at = endian::legetu64(fb[cursor..cursor+8]): i64;
     return c;
 };
+
+export fn getCompanyIndexList() []CompanyIndex = {
+    let companies: []CompanyIndex = [];
+
+    let indexp: path::buffer = match(getCompanyIndexPath()) {
+        case let b: path::buffer => yield b;
+        case => {
+            fmt::println("Can't reach index path, did you already init ?")!;
+            return [];
+        };
+    };
+
+    let fb: []u8 = match (readfile(path::string(&indexp))) {
+        case let b: []u8 => yield b;
+        case => yield [];
+    };
+
+    if(len(fb) <= 12) {
+        return companies;
+    };
+
+    if(! bytes::equal(fb[..4], MAGIC)) {
+         return companies;
+    };
+
+    let company_count: u32 = endian::legetu32(fb[7..11]);
+
+    let cursor: u32 = 12;
+    for(let i: size = 0;i < company_count; i+= 1) {
+        cursor += 4;
+
+        let cIndex: CompanyIndex = CompanyIndex{...};
+
+        cIndex.head.id = endian::legetu32(fb[cursor..cursor + 4]);
+        cursor += 4;
+
+        cIndex.name_size = fb[cursor];
+        cursor += 1;
+
+        cIndex.name = strings::fromutf8_unsafe(fb[cursor..cursor + cIndex.name_size]);
+        cursor += cIndex.name_size;
+
+        cIndex.status = fb[cursor]: CompanyStatus;
+        cIndex.created_at = endian::legetu64(fb[cursor..cursor + 8]): i64;
+
+        append(companies, cIndex)!;
+    };
+    return companies;
+};
