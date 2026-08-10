@@ -141,6 +141,62 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
     return company.head.id;
 };
 
+export fn getCompanyIndexPath() (path::buffer | errors::error) = {
+
+    let buf = match (path::init("./")) {
+          case let b: path::buffer => yield b;
+          case let e: path::error  => return errors::invalid;
+      };
+      match (path::push(&buf, HUNT_GLOBAL_DIR)) {
+          case => yield;
+          case let e: path::error => return errors::invalid;
+      };
+
+      match (path::push(&buf, HUNT_DIRS[4])) {
+          case => yield;
+          case let e: path::error => return errors::invalid;
+      };
+
+      match (path::push(&buf, INDEX_FILE)) {
+          case => yield;
+          case let e: path::error => return errors::invalid;
+      };
+
+      return buf;
+};
+
+export fn getCompanyPath(id: u32, name: str) (path::buffer | errors::error) = {
+
+    let buf = match (path::init("./")) {
+          case let b: path::buffer => yield b;
+          case let e: path::error  => return errors::invalid;
+      };
+      match (path::push(&buf, HUNT_GLOBAL_DIR)) {
+          case => yield;
+          case let e: path::error => return errors::invalid;
+      };
+
+      match (path::push(&buf, HUNT_DIRS[4])) {
+          case => yield;
+          case let e: path::error => return errors::invalid;
+      };
+
+      let prefix = if (id < 10) {
+          yield "00";
+      } else if (id < 100) {
+          yield "0";
+      } else {
+          yield "";
+      };
+      let companysegment = fmt::asprintf("cmp-{}{}-{}{}", prefix, id, name, ENTRY_EXT)!;
+      defer free(companysegment);
+      match (path::push(&buf, companysegment)) {
+          case => yield;
+          case let e: path::error => return errors::invalid;
+      };
+      return buf;
+};
+
 
 export fn companyToBytes(c: *Company) []u8 = {
     let buff: []u8 = alloc([0...], c.head.chunksize)!;
@@ -211,4 +267,79 @@ export fn companyindexToBytes(c: *CompanyIndex) []u8 = {
     endian::leputu64(buff[cursor..cursor + 8], c.created_at: u64);
 
     return buff;
+};
+
+export fn companyGet(cquery: CompanyQuery) (Company | void) = {
+    let indexpath: path::buffer = getCompanyIndexPath()!;
+
+    let fb: []u8 = readfile(path::string(&indexpath))!;
+    let entrycount: u32 = endian::legetu32(fb[7..11]);
+    let cursor: u64 = 12;
+
+    return match(cquery) {
+        case let sq: str => {
+            let nsq: str = normalize(sq);
+            for(let i: size = 0; i < entrycount; i += 1) {
+                let csize: u32 = endian::legetu32(fb[cursor.. cursor + 4]);
+                let nsize: u8 = fb[cursor+8];
+                let name: str = strings::fromutf8_unsafe(fb[cursor+9..cursor + 9 + nsize]);
+                if (normalize(name) == nsq) {
+                    yield getCompanyDetails(endian::legetu32(fb[cursor+4..cursor]), name);
+                };
+            };
+        };
+        case let uq: u32 => {
+            if (uq >= entrycount) {
+                yield;
+            };
+            for(let i: size = 0; i < uq; i += 1) {
+                let csize: u32 = endian::legetu32(fb[cursor.. cursor + 4]);
+                cursor += csize;
+            };
+            let nsize: u8 = fb[cursor+8];
+            let name: str = strings::fromutf8_unsafe(fb[cursor+9..cursor + 9 + nsize]);
+            yield getCompanyDetails(uq, name);
+        };
+    };
+};
+
+export fn getCompanyDetails(id: u32, name: str) (Company | void) = {
+
+    let indexpath: path::buffer = match(getCompanyPath(id, name)) {
+        case let b: path::buffer => yield b;
+        case => return;
+    };
+
+
+    let fb: []u8 = match(readfile(path::string(&indexpath))) {
+        case let b: []u8 => yield b;
+        case => return;
+    };
+
+    let c: Company = Company{...};
+    let cursor: u64 = 12;
+    c.head.chunksize = endian::legetu32(fb[cursor..cursor + 4]);
+    cursor += 4;
+    c.head.id =  endian::legetu32(fb[cursor..cursor + 4]);
+    cursor += 4;
+    c.name_size = fb[cursor];
+    cursor += 1;
+    c.name = strings::fromutf8_unsafe(fb[cursor..cursor + c.name_size]);
+    cursor += c.name_size;
+    c.adress_size = endian::legetu16(fb[cursor..cursor+2]);
+    cursor += 2;
+    c.adress = strings::fromutf8_unsafe(fb[cursor..cursor+c.adress_size]);
+    cursor += c.adress_size;
+    c.tags_length = fb[cursor];
+    cursor += 1;
+    c.tags = alloc([Tag{...}...],  c.tags_length)!;
+    for(let i: size = 0; i < c.tags_length; i += 1) {
+        c.tags[i].titlesize = fb[cursor];
+        c.tags[i].title = strings::fromutf8_unsafe(fb[cursor + 1.. cursor +1 + c.tags[i].titlesize]);
+        cursor += 1 + c.tags[i].titlesize;
+    };
+    c.status = fb[cursor]: CompanyStatus;
+    cursor += 1;
+    c.created_at = endian::legetu64(fb[cursor..cursor+8]): i64;
+    return c;
 };

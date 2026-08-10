@@ -1,8 +1,10 @@
-use os;
 use fmt;
 use engine;
 use strings;
 use errors;
+use os;
+use strconv;
+use texts;
 
 export fn company(args: []str) void = {
 
@@ -78,4 +80,38 @@ fn edit(args: []str) void = {
 
 fn show(args: []str) void = {
     fmt::println("Company show called!")!;
+
+    if(len(args) < 2) {
+        fmt::println("You should give a name or an id for the company to show.")!;
+        return;
+    };
+
+    if(strings::hasprefix(args[1], "-")) {
+        fmt::println("You should use first argument of the add command to give a name for the company.")!;
+        return;
+    };
+
+    let cquery: engine::CompanyQuery = match(strconv::stou32(args[1])) {
+        case let id: u32 => yield id;
+        case => yield args[1];
+    };
+
+    let c: engine::Company = match (engine::companyGet(cquery)) {
+        case let c: engine::Company => yield c;
+        case => {
+            fmt::println("Company not recognized (Not registered yet or wrong name or id).")!;
+            return;
+        };
+    };
+    let tagstr: str = "";
+    for(let tag .. c.tags) {
+        tagstr = strings::concat(tagstr, fmt::asprintf("      - {}\n", tag.title)!)!;
+    };
+    let statusstr: str = "";
+    if(c.status: u8 < 4) {
+        statusstr = engine::CompanyStatusText[c.status: u8];
+    };
+    let datestr: str = engine::formatdate(c.created_at);
+    defer free(datestr);
+    fmt::printfln(texts::SHOW_COMPANY, c.name, c.head.id, c.adress, tagstr, statusstr, datestr)!;
 };
