@@ -28,6 +28,16 @@ fn list(args: []str) void = {
 
      let flags: []engine::Flag = engine::parseflags(args)!;
      let onlystatus: u8 = 255;
+     let tags: []str = [];
+
+     match (engine::checkflag(flags, "tags", 't')) {
+        case let f: engine::Flag => {
+            tags = strings::split(f.input, ",")!;
+            yield;
+        };
+        case => yield;
+     };
+
      match (engine::checkflag(flags, "status", 's')) {
          case let f: engine::Flag => {
             onlystatus = switch(f.input) {
@@ -42,6 +52,7 @@ fn list(args: []str) void = {
         case => yield;
      };
 
+
     let companies: []engine::CompanyIndex = engine::getCompanyIndexList();
     fmt::println("List of the companies:\n ID | Company Name | Status")!;
     for (let c .. companies) {
@@ -49,9 +60,27 @@ fn list(args: []str) void = {
         if(c.status < 4) {
             company_status_str = engine::CompanyStatusText[c.status: u8];
         };
-        fmt::println("cstatus ", c.status: u8, onlystatus)!;
         if (onlystatus != 255 && c.status: u8 != onlystatus) {
             continue;
+        };
+        if (len(tags) > 0) {
+            let checkcompany: engine::Company = match(engine::getCompanyDetails(c.head.id, c.name)) {
+                case let cc: engine::Company => yield cc;
+                case => continue;
+            };
+
+            let tagfit: u8 = 0;
+            for (let tagc..tags) {
+                for(let t..checkcompany.tags) {
+                    if (tagc == t.title) {
+                        tagfit += 1;
+                    };
+                };
+            };
+            if (tagfit != len(tags)) {
+                continue;
+            };
+
         };
 
         fmt::println(c.head.id, " | ", c.name, " | ", company_status_str)!;
