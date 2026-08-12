@@ -394,6 +394,28 @@ export fn getCompanyIndexList() []CompanyIndex = {
     return companies;
 };
 
-export fn companyupdate(id: u32, name: str, adress: str, status: str, tags_in: str) void = {
-    fmt::println("machin")!;
+export fn companyUpdate(id: u32, name: str, adress: str, status: str, tags_in: str) u8 = {
+
+    let c: Company = match (companyGet(id: CompanyQuery)){
+        case let c:Company => yield c;
+        case void => return 1;
+    };
+
+    let filepath: path::buffer =  match(getCompanyPath(id, c.name)){
+        case let f: path::buffer => yield f;
+        case void => return 2;
+    };
+    let newfilepath: path::buffer = path::buffer{...};
+    if (name != c.name) {
+        let newfilepath: path::buffer = match(getCompanyPath(id, name)) {
+            case let f: path::buffer => yield f;
+            case void => return 3;
+        };
+
+    };
+
+
+
+
+
 };
