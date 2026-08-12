@@ -27,7 +27,7 @@ export fn company(args: []str) void = {
 fn list(args: []str) void = {
 
      let flags: []engine::Flag = engine::parseflags(args)!;
-     let onlystatus: u8 = 255;
+     let onlystatus: engine::CompanyStatus = engine::CompanyStatus::NONE;
      let tags: []str = [];
 
      match (engine::checkflag(flags, "tags", 't')) {
@@ -38,15 +38,10 @@ fn list(args: []str) void = {
         case => yield;
      };
 
+
      match (engine::checkflag(flags, "status", 's')) {
          case let f: engine::Flag => {
-            onlystatus = switch(f.input) {
-                case "PROSPECT", "P", "p", "prospect" => yield engine::CompanyStatus::PROSPECT: u8;
-                case "CLIENT", "C", "c", "client" => yield engine::CompanyStatus::CLIENT: u8;
-                case "STALE", "S", "s", "stale" => yield engine::CompanyStatus::STALE: u8;
-                case "DEAD", "D", "d", "dead" => yield engine::CompanyStatus::DEAD: u8;
-                case => yield 255;
-            };
+            onlystatus = engine::companyStatusMatch(f.input);
 
          };
         case => yield;
@@ -56,13 +51,11 @@ fn list(args: []str) void = {
     let companies: []engine::CompanyIndex = engine::getCompanyIndexList();
     fmt::println("List of the companies:\n ID | Company Name | Status")!;
     for (let c .. companies) {
-        let company_status_str: str = "";
-        if(c.status < 4) {
-            company_status_str = engine::CompanyStatusText[c.status: u8];
-        };
-        if (onlystatus != 255 && c.status: u8 != onlystatus) {
+
+        if (onlystatus != engine::CompanyStatus::NONE && c.status != onlystatus) {
             continue;
         };
+
         if (len(tags) > 0) {
             let checkcompany: engine::Company = match(engine::getCompanyDetails(c.head.id, c.name)) {
                 case let cc: engine::Company => yield cc;
@@ -82,6 +75,13 @@ fn list(args: []str) void = {
             };
 
         };
+
+        let company_status_str: str = "";
+        if(c.status != engine::CompanyStatus::NONE) {
+            company_status_str = engine::CompanyStatusText[c.status: u8];
+        };
+
+
 
         fmt::println(c.head.id, " | ", c.name, " | ", company_status_str)!;
     };

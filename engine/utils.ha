@@ -32,3 +32,14 @@ export fn formatdate(ts: i64) str = {
 
     return date::asformat(date::STAMP, &d)!;
 };
+
+
+export fn companyStatusMatch(s: str) CompanyStatus = {
+    return switch(s) {
+        case "PROSPECT", "P", "p", "prospect" => yield CompanyStatus::PROSPECT;
+        case "CLIENT", "C", "c", "client" => yield CompanyStatus::CLIENT;
+        case "STALE", "S", "s", "stale" => yield CompanyStatus::STALE;
+        case "DEAD", "D", "d", "dead" => yield CompanyStatus::DEAD;
+        case => yield CompanyStatus::NONE;
+    };
+};

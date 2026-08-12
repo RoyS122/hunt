@@ -89,13 +89,7 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
     company.tags_length = len(tagstructs): u8;
     company.tags = tagstructs;
 
-    let statusTyped: CompanyStatus = switch(status) {
-        case "PROSPECT", "P", "p", "prospect" => yield CompanyStatus::PROSPECT;
-        case "CLIENT", "C", "c", "client" => yield CompanyStatus::CLIENT;
-        case "STALE", "S", "s", "stale" => yield CompanyStatus::STALE;
-        case "DEAD", "D", "d", "dead" => yield CompanyStatus::DEAD;
-        case => yield CompanyStatus::PROSPECT;
-    };
+    let statusTyped: CompanyStatus = companyStatusMatch(status);
 
     company.status = statusTyped;
 
@@ -398,4 +392,8 @@ export fn getCompanyIndexList() []CompanyIndex = {
         append(companies, cIndex)!;
     };
     return companies;
+};
+
+export fn companyupdate(id: u32, name: str, adress: str, status: str, tags_in: str) void = {
+    fmt::println("machin")!;
 };
