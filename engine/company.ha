@@ -394,7 +394,8 @@ export fn getCompanyIndexList() []CompanyIndex = {
     return companies;
 };
 
-export fn companyUpdate(id: u32, name: str, adress: str, status: str, tags_in: str) u8 = {
+export fn companyEdit(id: u32, name: str, adress: str, status: str, tags_in: str) u8 = {
+    let hasChange: bool = false;
 
     let c: Company = match (companyGet(id: CompanyQuery)){
         case let c:Company => yield c;
@@ -403,19 +404,149 @@ export fn companyUpdate(id: u32, name: str, adress: str, status: str, tags_in: s
 
     let filepath: path::buffer =  match(getCompanyPath(id, c.name)){
         case let f: path::buffer => yield f;
-        case void => return 2;
+        case  => return 2;
     };
+
     let newfilepath: path::buffer = path::buffer{...};
-    if (name != c.name) {
+    let nc: Company = c;
+    const name_changed: bool = name != c.name && name != "";
+
+    if (name_changed) {
         let newfilepath: path::buffer = match(getCompanyPath(id, name)) {
             case let f: path::buffer => yield f;
-            case void => return 3;
+            case  => return 3;
+        };
+        nc.name = name;
+        hasChange = true;
+    };
+
+    if (adress != "" && adress != c.adress) {
+        nc.adress = adress;
+         hasChange = true;
+    };
+    let newstatus: CompanyStatus = companyStatusMatch(status);
+
+    if ( newstatus != CompanyStatus::NONE && newstatus != c.status) {
+        nc.status = newstatus;
+         hasChange = true;
+    };
+
+    let tagsSplited: []str = strings::split(strings::trim(tags_in, ' '), ",")!;
+
+    if (len(tagsSplited) != c.tags_length && len(tagsSplited) < types::U8_MAX) {
+        hasChange = true;
+        nc.tags_length = len(tagsSplited): u8;
+        nc.tags = alloc([Tag{...}...], nc.tags_length)!;
+        for(let i: size = 0; i < nc.tags_length; i += 1) {
+            if(len(tagsSplited[i]) > types::U8_MAX) {continue;};
+            nc.tags[i].titlesize = len(tagsSplited[i]): u8;
+            nc.tags[i].title = tagsSplited[i];
+        };
+    }else{
+        for(let i: size = 0; i < nc.tags_length; i += 1) {
+            if(nc.tags[i].title != tagsSplited[i]) {
+                if(len(tagsSplited[i]) > types::U8_MAX) {continue;};
+                hasChange = true;
+                nc.tags[i].titlesize = len(tagsSplited[i]): u8;
+                nc.tags[i].title = tagsSplited[i];
+            };
+        };
+    };
+
+    let ncbytes: []u8 = companyToBytes(&nc);
+    nc.head.chunksize = len(ncbytes): u32;
+    ncbytes = companyToBytes(&nc);
+
+    let newfilebytes: []u8 = [];
+    append(newfilebytes, FILE_HEADER...)!;
+    append(newfilebytes, ncbytes...)!;
+
+    if (hasChange) {
+        if(name_changed) {
+            let newfile: io::file = match(os::create(path::string(&newfilepath), 0o755)) {
+                case let f: io::file => yield f;
+                case => return 4;
+            };
+            os::remove(path::string(&filepath))!;
+
+            io::writeall(newfile, newfilebytes)!;
+
+
+        }else{
+            let file: io::file = match(os::create(path::string(&filepath), 0o755)) {
+                case let f: io::file => yield f;
+                case => return 5;
+            };
+             io::writeall(file, newfilebytes)!;
         };
 
+        let ncIndex: CompanyIndex = indexEntryFromCompany(&nc);
+
+        switch (replaceIndexEntry(&ncIndex)) {
+            case 0 => return 0;
+            case => return 6;
+        };
     };
 
 
 
+    return 0;
+};
+
+fn replaceIndexEntry(newentry: *CompanyIndex) u8 = {
+
+    let indexpath: path::buffer = match(getCompanyIndexPath()){
+        case let b: path::buffer => yield b;
+        case => return 1;
+    };
+
+    let ifb: []u8 = match(readfile(path::string(&indexpath))) {
+        case let fb: []u8 => yield fb;
+        case => return 2;
+    };
+
+    if(strings::fromutf8_unsafe(ifb[0..4]) != "HUNT") {
+        return 3; // Wrong filetype
+    };
+
+    let entrycount: u32 = endian::legetu32(ifb[7..11]);
+
+    if( entrycount <= newentry.head.id) {
+        return 4; // Wrong id ( no chunk to replace )
+    };
+
+    let cursor: u64 = 12;
+    for (let i: size = 0; i < newentry.head.id; i += 1) {
+        let chunksize: u32 = endian::legetu32(ifb[cursor..cursor + 4]);
+        cursor += chunksize;
+    };
 
 
+    if (newentry.head.id != endian::legetu32(ifb[cursor + 4.. cursor +8])) {
+        return 5; // Probably file corrupted;
+    };
+
+    let chunksize: u32 = endian::legetu32(ifb[cursor..cursor+4]);
+
+    let previous: []u8 = ifb[..cursor];
+    let new: []u8 = companyindexToBytes(newentry);
+    let next: []u8 = ifb[cursor + chunksize ..];
+
+    let newifb: []u8 = [];
+    append(newifb, previous...)!;
+    append(newifb, new...)!;
+    append(newifb, next...)!;
+
+    let file: io::file = match(os::open(path::string(&indexpath), 0o755)) {
+        case let f: io::file => yield f;
+        case => return 6; // Can't open file
+    };
+
+    match (io::writeall(file, newifb)) {
+        case let e: io::error => return 7;
+        case => yield;
+    };
+
+    io::close(file)!;
+    return 0;
 };
