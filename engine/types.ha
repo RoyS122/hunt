@@ -4,10 +4,10 @@ export type Command = struct {
     short: str,
 
     desc: str,
+    usage: str,
     examples: [](str, str),
-
     subcommands: []Command,
-    flags: []Flag,
+    flags: [](str, str, str),
 };
 
 export type Flag = struct {
@@ -15,5 +15,7 @@ export type Flag = struct {
     short: rune,
     input: str,
 };
+
+
 
 export type CompanyQuery = (u32|str);

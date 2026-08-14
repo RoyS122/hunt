@@ -1,15 +1,61 @@
 use engine;
 
-export const COMMAND_LIST: [1]engine::Command = [
+export const COMMAND_LIST: [2]engine::Command = [
         engine::Command{
             name = "help",
             short = "h",
+            usage = "hunt help {command name or short}",
             desc = "Show the list of the commands or explain how to use a command.",
             examples = [("hunt help company", "Show the help page for company commands"), ("hunt h", "Show the list of the commands")],
+            flags = [],
             subcommands = [],
-            flags = []
         },
 
+        engine::Command{
+            name = "company",
+            short = "comp",
+            usage = "hunt company [subcommand name or short] {others arguments of subcommands and flags}",
+            desc = "The differents commands for companies.",
+            examples = [("hunt company add trustablecompany", "Add a company.")],
+            flags = [],
+            subcommands = [ engine::Command{
+                name = "add",
+                short = "a",
+                usage = "hunt company add [Company name] {flags}",
+                desc = "Add a company in hunt repertory.",
+                examples = [("hunt company add hunterprise -t hare,nicelanguage --status prospect", "Add the company hunterprise with the tags hare and nicelanguage, also set the status as Prospect")],
+                flags = [("--tags", "-t", "the list of tags separate by coma"), ("--status", "-s", "the status of the company as Prospect (p) / Client (c) / Stale (s) / Dead (d)"), ("--adress", "-a", "The adress of the company (like city or street...)")],
+                subcommands = [],
+                },
+            engine::Command{
+                name = "edit",
+                short = "e",
+                usage = "hunt company edit [Company id] {flags}",
+                desc = "Edit a company in hunt repertory.",
+                examples = [(`hunt company edit 1 -n "hunterprise modified" -t hare,nicelanguage --status prospect`, "Edit the company hunterprise (index 1) with the new name and with the tags hare and nicelanguage, also set the status as Prospect")],
+              flags = [("--name", "-n", "the name of the company"), ("--tags", "-t", "the list of tags separate by coma"), ("--status", "-s", "the status of the company as Prospect (p) / Client (c) / Stale (s) / Dead (d)"), ("--adress", "-a", "The adress of the company (like city or street...)")],
+              subcommands = [],
+              },
+            engine::Command{
+                name = "list",
+                short = "l",
+                usage = "hunt company list {flags}",
+                desc = "Show list of company registered in hunt.",
+                examples = [("hunt company list -t hare,lang", "Show the companies with the tags hare and lang")],
+                flags = [("--tags", "-t", "the list of tags separate by coma"), ("--status", "-s", "the status of the company as Prospect (p) / Client (c) / Stale (s) / Dead (d)")],
+                subcommands = [],
+                },
+            engine::Command{
+                name = "show",
+                short = "s",
+                usage = "hunt company show [company name or id]",
+                desc = "Show details of a company registered in hunt.",
+                examples = [("hunt company show 1", "Show the companies at index 1"), ("hunt company show hunterprise", "Show the details of the company named hunterprise")],
+                flags = [],
+                subcommands = [],
+                },
+            ],
+        },
         // engine::Command{},
         // engine::Command{},
         // engine::Command{},

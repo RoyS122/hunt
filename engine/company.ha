@@ -105,7 +105,7 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
     endian::leputu32(filebytes[7..11], companylength + 1);
     let indexfile: io::file = os::open(target_path, fs::flag::WRONLY)!;
 
-    fmt::println(target_path)!;
+
     io::writeall(indexfile, filebytes)!;
     io::close(indexfile)!;
 
@@ -126,7 +126,7 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
     };
 
     let company_filepath: str = path::string(&buf);
-    fmt::println(company_filepath)!;
+
 
     let companyfile: io::file = os::create(company_filepath, 0o755)!;
     let companyfilecontent: []u8 = [];
@@ -190,7 +190,6 @@ export fn getCompanyPath(id: u32, name: str) (path::buffer | errors::error) = {
       };
       return buf;
 };
-
 
 export fn companyToBytes(c: *Company) []u8 = {
     let buff: []u8 = alloc([0...], c.head.chunksize)!;
@@ -471,7 +470,7 @@ export fn companyedit(id: u32, name: str, adress: str, status: str, tags_in: str
 
     if (hasChange) {
         if(name_changed) {
-            fmt::println(path::string(&newfilepath))!;
+
             let newfile: io::file = match(os::create(path::string(&newfilepath), 0o755)) {
                 case let f: io::file => yield f;
                 case => return 4;
@@ -514,7 +513,7 @@ fn replaceIndexEntry(newentry: *CompanyIndex) u8 = {
         case => return 2;
     };
 
-    fmt::println(path::string(&indexpath))!;
+
 
     if(strings::fromutf8_unsafe(ifb[0..4]) != "HUNT") {
         return 3; // Wrong filetype
@@ -561,7 +560,6 @@ fn replaceIndexEntry(newentry: *CompanyIndex) u8 = {
     io::close(file)!;
     return 0;
 };
-
 
 export fn updatecompanychunksize(c: *Company) void = {
     c.head.chunksize = 8 + 1 + c.name_size + 2 + c.adress_size;
