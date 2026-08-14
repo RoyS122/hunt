@@ -89,8 +89,6 @@ fn list(args: []str) void = {
     };
 };
 
-
-
 fn add(args: []str) void = {
 
     if(len(args) < 2) {
@@ -125,7 +123,6 @@ fn add(args: []str) void = {
         case let id: u32 => fmt::printfln("La company {} a bien été ajoutée à l'id {}", args[1], id)!;
    };
 };
-
 
 fn edit(args: []str) void = {
 
@@ -169,9 +166,12 @@ fn edit(args: []str) void = {
     let res: u32 = engine::companyedit(id, name, adress, status, tags);
     if (res != 0) {
         fmt::println("Fail to edit company: \nid: {}, \nerror: {}", id, res)!;
+        os::exit(1);
     };
-};
 
+    fmt::println("Company at index,", id, "has been updated")!;
+
+};
 
 fn show(args: []str) void = {
     if(len(args) < 2) {
