@@ -283,6 +283,7 @@ export fn companyGet(cquery: CompanyQuery) (Company | void) = {
                 if (normalize(name) == nsq) {
                     return getCompanyDetails(endian::legetu32(fb[cursor+4..cursor+8]), name);
                 };
+                cursor += csize;
             };
         };
         case let uq: u32 => {
