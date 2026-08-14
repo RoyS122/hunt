@@ -89,19 +89,13 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
     company.tags_length = len(tagstructs): u8;
     company.tags = tagstructs;
 
-    let statusTyped: CompanyStatus = switch(status) {
-        case "PROSPECT", "P", "p", "prospect" => yield CompanyStatus::PROSPECT;
-        case "CLIENT", "C", "c", "client" => yield CompanyStatus::CLIENT;
-        case "STALE", "S", "s", "stale" => yield CompanyStatus::STALE;
-        case "DEAD", "D", "d", "dead" => yield CompanyStatus::DEAD;
-        case => yield CompanyStatus::PROSPECT;
-    };
+    let statusTyped: CompanyStatus = companyStatusMatch(status);
 
     company.status = statusTyped;
 
     company.created_at = date::to_instant(date::now()).sec;
 
-    company.head.chunksize = (4 + 4 + 1 + company.name_size + 2 + company.adress_size + 1 + totaltagsize + 1 + 8): u32;
+    updatecompanychunksize(&company);
 
     let cindex: CompanyIndex = indexEntryFromCompany(&company);
 
@@ -154,17 +148,14 @@ export fn getCompanyIndexPath() (path::buffer | errors::error) = {
           case => yield;
           case let e: path::error => return errors::invalid;
       };
-
       match (path::push(&buf, HUNT_DIRS[4])) {
           case => yield;
           case let e: path::error => return errors::invalid;
       };
-
       match (path::push(&buf, INDEX_FILE)) {
           case => yield;
           case let e: path::error => return errors::invalid;
       };
-
       return buf;
 };
 
@@ -292,6 +283,7 @@ export fn companyGet(cquery: CompanyQuery) (Company | void) = {
                 if (normalize(name) == nsq) {
                     return getCompanyDetails(endian::legetu32(fb[cursor+4..cursor+8]), name);
                 };
+                cursor += csize;
             };
         };
         case let uq: u32 => {
@@ -337,7 +329,10 @@ export fn getCompanyDetails(id: u32, name: str) (Company | void) = {
     cursor += c.adress_size;
     c.tags_length = fb[cursor];
     cursor += 1;
-    c.tags = alloc([Tag{...}...],  c.tags_length)!;
+    if (c.tags_length > 0) {
+        c.tags = alloc([Tag{...}...],  c.tags_length)!;
+    };
+
 
     for(let i: size = 0; i < c.tags_length; i += 1) {
         c.tags[i].titlesize = fb[cursor];
@@ -393,9 +388,189 @@ export fn getCompanyIndexList() []CompanyIndex = {
         cursor += cIndex.name_size;
 
         cIndex.status = fb[cursor]: CompanyStatus;
-        cIndex.created_at = endian::legetu64(fb[cursor..cursor + 8]): i64;
+        cursor += 1;
 
+        cIndex.created_at = endian::legetu64(fb[cursor..cursor + 8]): i64;
+        cursor += 8;
         append(companies, cIndex)!;
     };
     return companies;
+};
+
+export fn companyedit(id: u32, name: str, adress: str, status: str, tags_in: str) u8 = {
+    let hasChange: bool = false;
+
+    let c: Company = match (companyGet(id: CompanyQuery)){
+        case let c:Company => yield c;
+        case void => return 1;
+    };
+
+    let filepath: path::buffer =  match(getCompanyPath(id, c.name)){
+        case let f: path::buffer => yield f;
+        case  => return 2;
+    };
+
+    let newfilepath: path::buffer = path::buffer{...};
+    let nc: Company = c;
+    const name_changed: bool = name != c.name && name != "";
+
+    if (name_changed) {
+        newfilepath = match(getCompanyPath(id, name)) {
+            case let f: path::buffer => yield f;
+            case  => return 3;
+        };
+
+        nc.name = name;
+        nc.name_size = len(name): u8;
+        hasChange = true;
+    };
+
+    if (adress != "" && adress != c.adress) {
+        nc.adress = adress;
+        nc.adress_size = len(adress): u16;
+         hasChange = true;
+    };
+    let newstatus: CompanyStatus = companyStatusMatch(status);
+
+    if ( newstatus != CompanyStatus::NONE && newstatus != c.status) {
+        nc.status = newstatus;
+         hasChange = true;
+    };
+
+    if (tags_in != "") {
+    let tagsSplited: []str = strings::split(strings::trim(tags_in, ' '), ",")!;
+
+    if (len(tagsSplited) != c.tags_length && len(tagsSplited) < types::U8_MAX) {
+        hasChange = true;
+        nc.tags_length = len(tagsSplited): u8;
+        nc.tags = alloc([Tag{...}...], nc.tags_length)!;
+        for(let i: size = 0; i < nc.tags_length; i += 1) {
+            if(len(tagsSplited[i]) > types::U8_MAX) {continue;};
+            nc.tags[i].titlesize = len(tagsSplited[i]): u8;
+            nc.tags[i].title = tagsSplited[i];
+        };
+    }else{
+        for(let i: size = 0; i < nc.tags_length; i += 1) {
+            if(nc.tags[i].title != tagsSplited[i]) {
+                if(len(tagsSplited[i]) > types::U8_MAX) {continue;};
+                hasChange = true;
+                nc.tags[i].titlesize = len(tagsSplited[i]): u8;
+                nc.tags[i].title = tagsSplited[i];
+            };
+        };
+    };
+    };
+
+
+    updatecompanychunksize(&nc);
+    let ncbytes: []u8 = companyToBytes(&nc);
+
+    let newfilebytes: []u8 = [];
+    append(newfilebytes, FILE_HEADER...)!;
+    append(newfilebytes, ncbytes...)!;
+
+    if (hasChange) {
+        if(name_changed) {
+            fmt::println(path::string(&newfilepath))!;
+            let newfile: io::file = match(os::create(path::string(&newfilepath), 0o755)) {
+                case let f: io::file => yield f;
+                case => return 4;
+            };
+            os::remove(path::string(&filepath))!;
+
+            io::writeall(newfile, newfilebytes)!;
+
+
+        }else{
+            let file: io::file = match(os::create(path::string(&filepath), 0o755)) {
+                case let f: io::file => yield f;
+                case => return 5;
+            };
+             io::writeall(file, newfilebytes)!;
+        };
+
+        let ncIndex: CompanyIndex = indexEntryFromCompany(&nc);
+        let err: u8 = replaceIndexEntry(&ncIndex);
+        switch (err) {
+            case 0 => return 0;
+            case => fmt::println(err)!; return 6;
+        };
+    };
+
+
+
+    return 0;
+};
+
+fn replaceIndexEntry(newentry: *CompanyIndex) u8 = {
+
+    let indexpath: path::buffer = match(getCompanyIndexPath()){
+        case let b: path::buffer => yield b;
+        case => return 1;
+    };
+
+    let ifb: []u8 = match(readfile(path::string(&indexpath))) {
+        case let fb: []u8 => yield fb;
+        case => return 2;
+    };
+
+    fmt::println(path::string(&indexpath))!;
+
+    if(strings::fromutf8_unsafe(ifb[0..4]) != "HUNT") {
+        return 3; // Wrong filetype
+    };
+
+    let entrycount: u32 = endian::legetu32(ifb[7..11]);
+
+    if( entrycount <= newentry.head.id) {
+        return 4; // Wrong id ( no chunk to replace )
+    };
+
+    let cursor: u64 = 12;
+    for (let i: size = 0; i < newentry.head.id; i += 1) {
+        let chunksize: u32 = endian::legetu32(ifb[cursor..cursor + 4]);
+        cursor += chunksize;
+    };
+
+
+    if (newentry.head.id != endian::legetu32(ifb[cursor + 4.. cursor +8])) {
+        return 5; // Probably file corrupted;
+    };
+
+    let chunksize: u32 = endian::legetu32(ifb[cursor..cursor+4]);
+
+    let previous: []u8 = ifb[..cursor];
+    let new: []u8 = companyindexToBytes(newentry);
+    let next: []u8 = ifb[cursor + chunksize ..];
+
+    let newifb: []u8 = [];
+    append(newifb, previous...)!;
+    append(newifb, new...)!;
+    append(newifb, next...)!;
+
+    let file: io::file = match(os::open(path::string(&indexpath), fs::flag::WRONLY)) {
+        case let f: io::file => yield f;
+        case let err: fs::error => fmt::println(fs::strerror(err))!; return 6; // Can't open file
+    };
+
+    match (io::writeall(file, newifb)) {
+        case let e: io::error => return 7;
+        case => yield;
+    };
+
+    io::close(file)!;
+    return 0;
+};
+
+
+export fn updatecompanychunksize(c: *Company) void = {
+    c.head.chunksize = 8 + 1 + c.name_size + 2 + c.adress_size;
+
+   let total_tagsize: u32 = 1;
+   for(let t .. c.tags) {
+       total_tagsize += 1 + t.titlesize;
+    };
+
+   c.head.chunksize += total_tagsize;
+   c.head.chunksize += 9;
 };

@@ -18,12 +18,13 @@ export type ChunkHeader = struct {
     chunksize: u32,
     id: u32,
 };
-export const CompanyStatusText: [4]str = ["Prospect", "Client", "Stale", "Dead"];
+export const CompanyStatusText: [5]str = ["Prospect", "Client", "Stale", "Dead", "None"];
 export type CompanyStatus =  enum u8{
     PROSPECT,
     CLIENT,
     STALE,
     DEAD,
+    NONE,
 };
 
 export type OpportunityStage =  enum u8{

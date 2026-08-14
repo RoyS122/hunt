@@ -5,6 +5,7 @@ use errors;
 use os;
 use strconv;
 use texts;
+use types;
 
 export fn company(args: []str) void = {
 
@@ -27,7 +28,7 @@ export fn company(args: []str) void = {
 fn list(args: []str) void = {
 
      let flags: []engine::Flag = engine::parseflags(args)!;
-     let onlystatus: u8 = 255;
+     let onlystatus: engine::CompanyStatus = engine::CompanyStatus::NONE;
      let tags: []str = [];
 
      match (engine::checkflag(flags, "tags", 't')) {
@@ -38,15 +39,10 @@ fn list(args: []str) void = {
         case => yield;
      };
 
+
      match (engine::checkflag(flags, "status", 's')) {
          case let f: engine::Flag => {
-            onlystatus = switch(f.input) {
-                case "PROSPECT", "P", "p", "prospect" => yield engine::CompanyStatus::PROSPECT: u8;
-                case "CLIENT", "C", "c", "client" => yield engine::CompanyStatus::CLIENT: u8;
-                case "STALE", "S", "s", "stale" => yield engine::CompanyStatus::STALE: u8;
-                case "DEAD", "D", "d", "dead" => yield engine::CompanyStatus::DEAD: u8;
-                case => yield 255;
-            };
+            onlystatus = engine::companyStatusMatch(f.input);
 
          };
         case => yield;
@@ -56,13 +52,11 @@ fn list(args: []str) void = {
     let companies: []engine::CompanyIndex = engine::getCompanyIndexList();
     fmt::println("List of the companies:\n ID | Company Name | Status")!;
     for (let c .. companies) {
-        let company_status_str: str = "";
-        if(c.status < 4) {
-            company_status_str = engine::CompanyStatusText[c.status: u8];
-        };
-        if (onlystatus != 255 && c.status: u8 != onlystatus) {
+
+        if (onlystatus != engine::CompanyStatus::NONE && c.status != onlystatus) {
             continue;
         };
+
         if (len(tags) > 0) {
             let checkcompany: engine::Company = match(engine::getCompanyDetails(c.head.id, c.name)) {
                 case let cc: engine::Company => yield cc;
@@ -82,6 +76,14 @@ fn list(args: []str) void = {
             };
 
         };
+
+        let company_status_str: str = "";
+
+        if(c.status != engine::CompanyStatus::NONE) {
+            company_status_str = engine::CompanyStatusText[c.status: u8];
+        };
+
+
 
         fmt::println(c.head.id, " | ", c.name, " | ", company_status_str)!;
     };
@@ -126,7 +128,48 @@ fn add(args: []str) void = {
 
 
 fn edit(args: []str) void = {
-    fmt::println("Company edit called!")!;
+
+    if(len(args) < 2) {
+        fmt::println("You should give at least the id of the company to edit.")!;
+        return;
+    };
+
+    if(strings::hasprefix(args[1], "-")) {
+        fmt::println("You should use first argument of the add command to give a name for the company.")!;
+        return;
+    };
+
+    let flags: []engine::Flag = engine::parseflags(args)!;
+
+    let name: str = match (engine::checkflag(flags, "name", 'n')) {
+        case let f: engine::Flag => yield f.input;
+        case => yield "";
+    };
+
+    let adress: str = match (engine::checkflag(flags, "adress", 'a')) {
+        case let f: engine::Flag => yield f.input;
+        case => yield "";
+    };
+
+    let tags: str = match (engine::checkflag(flags, "tags", 't')) {
+        case let f: engine::Flag => yield f.input;
+        case => yield "";
+    };
+
+    let status: str = match (engine::checkflag(flags, "status", 's')) {
+        case let f: engine::Flag => yield f.input;
+        case => yield "";
+    };
+
+    let id: u32 = match(strconv::stou32(args[1])) {
+        case let u: u32 => yield u;
+        case => fmt::println("Id should be a number between 0 and {}", types::U32_MAX)!; os::exit(2);
+    };
+
+    let res: u32 = engine::companyedit(id, name, adress, status, tags);
+    if (res != 0) {
+        fmt::println("Fail to edit company: \nid: {}, \nerror: {}", id, res)!;
+    };
 };
 
 
