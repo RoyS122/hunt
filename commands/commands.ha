@@ -10,7 +10,15 @@ export const COMMAND_LIST: [2]engine::Command = [
             flags = [],
             subcommands = [],
         },
-
+        engine::Command{
+            name = "init",
+            short = "",
+            usage = "hunt init {flag}",
+            desc = "Initialize hunt repertory.",
+            examples = [("hunt init", "Initialize hunt repertory."), ("hunt init -p my/own/path", "Init hunt repertory in a defined path.")],
+            flags = [("--path", "-p", "Choose the path were create hunt repertory")],
+            subcommands = [],
+        },
         engine::Command{
             name = "company",
             short = "comp",
