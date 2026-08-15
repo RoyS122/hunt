@@ -74,7 +74,7 @@ export fn companyadd(name: str, adress: str, status: str, tags_in: str) (u32 | e
     company.adress = adress;
 
     let tags: []str = strings::split(tags_in, ",")!;
-    // fmt::println(tags)!;
+
     let tagstructs: []Tag = [];
     let totaltagsize: u64 = 0;
     for(let t .. tags) {
