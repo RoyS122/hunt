@@ -77,6 +77,8 @@ export type Contact = struct {
 
     position_size: u8,
     position: str,
+
+    created_at: i64,
 };
 
 export type Action = struct {
