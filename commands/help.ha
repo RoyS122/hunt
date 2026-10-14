@@ -2,8 +2,7 @@ use fmt;
 use strings;
 
 export fn help(args: []str) void = {
-
-    if (len(args) == 0 ) {
+    if (len(args) < 2 ) {
         fmt::println("Usage: hunt <command> [subcommand] {arguments}\n")!;
         fmt::println("Commands:")!;
         for (let cmd .. COMMAND_LIST) {
