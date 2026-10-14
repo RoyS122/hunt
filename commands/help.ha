@@ -2,7 +2,7 @@ use fmt;
 use strings;
 
 export fn help(args: []str) void = {
-    args = args[1..];
+
     if (len(args) == 0 ) {
         fmt::println("Usage: hunt <command> [subcommand] {arguments}\n")!;
         fmt::println("Commands:")!;
@@ -11,6 +11,7 @@ export fn help(args: []str) void = {
         };
         fmt::println("\nRun 'hunt help <command>' for more information on a specific command.")!;
     } else {
+        args = args[1..];
         let target = args[0];
         let found = false;
         for (let cmd .. COMMAND_LIST) {

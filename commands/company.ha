@@ -16,7 +16,7 @@ export fn company(args: []str) void = {
 
     switch(args[1]) {
         case "list", "l" => list(args[1..]);
-        case "add", "a" => add(args[1..]);
+        case "add", "a" => addcomp(args[1..]);
         case "edit", "e" => edit(args[1..]);
         case "show", "s" => show(args[1..]);
         case => { const hargs: []str = ["company"]; help(hargs);};
@@ -89,7 +89,7 @@ fn list(args: []str) void = {
     };
 };
 
-fn add(args: []str) void = {
+fn addcomp(args: []str) void = {
 
     if(len(args) < 2) {
         fmt::println("You should give a name for the new company.")!;
