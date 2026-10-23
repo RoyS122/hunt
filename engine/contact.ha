@@ -274,3 +274,66 @@ export fn indexEntryFromContact(c: *Contact) ContactIndex = {
         created_at = c.created_at,
     };
 };
+
+export fn getContactIndexList() []ContactIndex = {
+    let contacts: []ContactIndex = [];
+
+    let indexp: path::buffer = match(getContactIndexPath()) {
+        case let b: path::buffer => yield b;
+        case => {
+            fmt::println("Can't reach index path, did you already init ?")!;
+            return contacts;
+        };
+    };
+
+    let fb: []u8 = match (readfile(path::string(&indexp))) {
+        case let b: []u8 => yield b;
+        case => yield [];
+    };
+
+    if(len(fb) <= 12) {
+        return contacts;
+    };
+
+    if(! bytes::equal(fb[..4], MAGIC)) {
+         return contacts;
+    };
+
+    let contact_count: u32 = endian::legetu32(fb[7..11]);
+
+    let cursor: u32 = 12;
+    for(let i: size = 0;i < contact_count; i+= 1) {
+        cursor += 4;
+
+        let cIndex: ContactIndex = ContactIndex{...};
+
+        cIndex.head.id = endian::legetu32(fb[cursor..cursor + 4]);
+        cursor += 4;
+
+        cIndex.company_id = endian::legetu32(fb[cursor..cursor+4]);
+        cursor += 4;
+
+        cIndex.first_name_size = fb[cursor];
+        cursor += 1;
+
+        cIndex.first_name = strings::fromutf8_unsafe(fb[cursor..cursor + cIndex.first_name_size]);
+        cursor += cIndex.first_name_size;
+
+        cIndex.last_name_size = fb[cursor];
+        cursor += 1;
+
+        cIndex.last_name = strings::fromutf8_unsafe(fb[cursor..cursor + cIndex.last_name_size]);
+        cursor += cIndex.last_name_size;
+
+        cIndex.position_size = fb[cursor];
+        cursor += 1;
+
+        cIndex.position = strings::fromutf8_unsafe(fb[cursor..cursor + cIndex.position_size]);
+        cursor += cIndex.position_size;
+
+        cIndex.created_at = endian::legetu64(fb[cursor..cursor + 8]): i64;
+        cursor += 8;
+        append(contacts, cIndex)!;
+    };
+    return contacts;
+};

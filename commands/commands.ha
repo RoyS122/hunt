@@ -64,7 +64,7 @@ export const COMMAND_LIST: [4]engine::Command = [
                 },
             ],
         },
-        engine::Command{
+        engine::Command {
             name = "contact",
             short = "cont",
             usage = "hunt contact [subcommand name or short] {others arguments of subcommands and flags}",
@@ -80,8 +80,18 @@ export const COMMAND_LIST: [4]engine::Command = [
                 flags = [("--email", "-e", "email adress"), ("--phone", "-p", "Phone number"), ("--position", "-P", "Position of the contact in the company"), ("--company", "-c", "Id or name of the company (have to add company before add a contact to one of them) ")],
                 subcommands = [],
                 },
+            engine::Command{
+                name = "list",
+                short = "l",
+                usage = "hunt contact list {flags}",
+                desc = "Show list of the contacts registered in hunt repertory.",
+                examples = [("hunt contact list -c \"xenterprise\"", "Show all the contacts linked to the xenterprise"), ("hunt contact list --position=\"HR\"", "Show all the contacts with the HR position.")],
+                flags = [("--company", "-c", "the company, by name or id"), ("--position", "-p", "The position in their company")],
+                subcommands = [],
+                },
             ],
         },
+
         // engine::Command{},
         // engine::Command{},
         // engine::Command{},
