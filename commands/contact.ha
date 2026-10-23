@@ -71,3 +71,67 @@ fn addcont(args: []str) void = {
         case let id: u32 => fmt::printfln("Le contact {} {} a bien été ajoutée à l'id {}", args[1], args[2], id)!;
    };
 };
+
+
+fn listcont(args: []str) void = {
+     let flags: []engine::Flag = engine::parseflags(args)!;
+     let onlystatus: engine::CompanyStatus = engine::CompanyStatus::NONE;
+     let tags: []str = [];
+
+     match (engine::checkflag(flags, "tags", 't')) {
+        case let f: engine::Flag => {
+            tags = strings::split(f.input, ",")!;
+            yield;
+        };
+        case => yield;
+     };
+
+
+     match (engine::checkflag(flags, "status", 's')) {
+         case let f: engine::Flag => {
+            onlystatus = engine::companyStatusMatch(f.input);
+
+         };
+        case => yield;
+     };
+
+
+    let companies: []engine::CompanyIndex = engine::getCompanyIndexList();
+    fmt::println("List of the companies:\n ID | Company Name | Status")!;
+    for (let c .. companies) {
+
+        if (onlystatus != engine::CompanyStatus::NONE && c.status != onlystatus) {
+            continue;
+        };
+
+        if (len(tags) > 0) {
+            let checkcompany: engine::Company = match(engine::getCompanyDetails(c.head.id, c.name)) {
+                case let cc: engine::Company => yield cc;
+                case => continue;
+            };
+
+            let tagfit: u8 = 0;
+            for (let tagc..tags) {
+                for(let t..checkcompany.tags) {
+                    if (tagc == t.title) {
+                        tagfit += 1;
+                    };
+                };
+            };
+            if (tagfit != len(tags)) {
+                continue;
+            };
+
+        };
+
+        let company_status_str: str = "";
+
+        if(c.status != engine::CompanyStatus::NONE) {
+            company_status_str = engine::CompanyStatusText[c.status: u8];
+        };
+
+
+
+        fmt::println(c.head.id, " | ", c.name, " | ", company_status_str)!;
+    };
+};

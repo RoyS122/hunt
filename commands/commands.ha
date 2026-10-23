@@ -64,7 +64,7 @@ export const COMMAND_LIST: [4]engine::Command = [
                 },
             ],
         },
-        engine::Command{
+        engine::Command {
             name = "contact",
             short = "cont",
             usage = "hunt contact [subcommand name or short] {others arguments of subcommands and flags}",
