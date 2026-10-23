@@ -1,6 +1,7 @@
 use strings;
 use time;
 use time::date;
+use fmt;
 
 export fn normalize(s: str) str = {
     let bs: []u8 = strings::toutf8(s);

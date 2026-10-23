@@ -288,7 +288,7 @@ export fn getContactIndexList() []ContactIndex = {
 
     let fb: []u8 = match (readfile(path::string(&indexp))) {
         case let b: []u8 => yield b;
-        case => yield contacts;
+        case => yield [];
     };
 
     if(len(fb) <= 12) {
@@ -310,6 +310,9 @@ export fn getContactIndexList() []ContactIndex = {
         cIndex.head.id = endian::legetu32(fb[cursor..cursor + 4]);
         cursor += 4;
 
+        cIndex.company_id = endian::legetu32(fb[cursor..cursor+4]);
+        cursor += 4;
+
         cIndex.first_name_size = fb[cursor];
         cursor += 1;
 
@@ -326,7 +329,7 @@ export fn getContactIndexList() []ContactIndex = {
         cursor += 1;
 
         cIndex.position = strings::fromutf8_unsafe(fb[cursor..cursor + cIndex.position_size]);
-        cursor += cIndex.last_name_size;
+        cursor += cIndex.position_size;
 
         cIndex.created_at = endian::legetu64(fb[cursor..cursor + 8]): i64;
         cursor += 8;

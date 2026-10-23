@@ -12,7 +12,7 @@ export fn contact(args: []str) void = {
         os::exit(1);
     };
     switch(args[1]) {
-        // case "list", "l" => list(args[1..]);
+        case "list", "l" => listcont(args[1..]);
         case "add", "a" => addcont(args[1..]);
         // case "edit", "e" => edit(args[1..]);
         // case "show", "s" => show(args[1..]);
@@ -75,63 +75,70 @@ fn addcont(args: []str) void = {
 
 fn listcont(args: []str) void = {
      let flags: []engine::Flag = engine::parseflags(args)!;
-     let onlystatus: engine::CompanyStatus = engine::CompanyStatus::NONE;
-     let tags: []str = [];
 
-     match (engine::checkflag(flags, "tags", 't')) {
-        case let f: engine::Flag => {
-            tags = strings::split(f.input, ",")!;
-            yield;
-        };
-        case => yield;
+     let positionFlag: str = match (engine::checkflag(flags, "position", 'p')) {
+        case let f: engine::Flag => yield f.input;
+        case => yield "";
      };
 
 
-     match (engine::checkflag(flags, "status", 's')) {
+     let company: engine::Company = engine::Company{...};
+     let companyFlagged: bool = false;
+     match (engine::checkflag(flags, "company", 'c')) {
          case let f: engine::Flag => {
-            onlystatus = engine::companyStatusMatch(f.input);
+            let cquery: engine::CompanyQuery = match(strconv::stou32(f.input)) {
+                case let id: u32 => yield id;
+                case => yield f.input;
+            };
 
+            match(engine::companyGet(cquery)) {
+                case let c: engine::Company => {
+                    company = c;
+                    companyFlagged = true;
+                };
+                case => yield;
+            };
          };
         case => yield;
      };
 
 
-    let companies: []engine::CompanyIndex = engine::getCompanyIndexList();
-    fmt::println("List of the companies:\n ID | Company Name | Status")!;
-    for (let c .. companies) {
-
-        if (onlystatus != engine::CompanyStatus::NONE && c.status != onlystatus) {
-            continue;
-        };
-
-        if (len(tags) > 0) {
-            let checkcompany: engine::Company = match(engine::getCompanyDetails(c.head.id, c.name)) {
-                case let cc: engine::Company => yield cc;
-                case => continue;
-            };
-
-            let tagfit: u8 = 0;
-            for (let tagc..tags) {
-                for(let t..checkcompany.tags) {
-                    if (tagc == t.title) {
-                        tagfit += 1;
-                    };
-                };
-            };
-            if (tagfit != len(tags)) {
+    let contacts: []engine::ContactIndex = engine::getContactIndexList();
+    fmt::println("List of the contacts:\n ID | Company Name (ID) | Contact Name | Position")!;
+    for (let c .. contacts) {
+        if ( companyFlagged ) {
+            if (c.company_id != company.head.id) {
                 continue;
             };
-
         };
 
-        let company_status_str: str = "";
-
-        if(c.status != engine::CompanyStatus::NONE) {
-            company_status_str = engine::CompanyStatusText[c.status: u8];
+        if ( positionFlag != "") {
+            if(c.position == "") {
+                if (engine::normalize(positionFlag) != engine::normalize("none")) {
+                    continue;
+                };
+            }else{
+                if (engine::normalize(positionFlag) == engine::normalize("none")) {
+                    continue;
+                };
+                if (engine::normalize(positionFlag) != engine::normalize(c.position)) {
+                    continue;
+                };
+            };
         };
 
 
+        let curr_company_show: str = match (engine::companyGet(c.company_id)) {
+            case let c: engine::Company => yield fmt::asprintf("{} ({})", c.name, c.head.id)!;
+            case void => yield "none";
+        };
 
-        fmt::println(c.head.id, " | ", c.name, " | ", company_status_str)!;
+        let positionDisp: str = c.position;
+        if (positionDisp == "") {
+            positionDisp = "none";
+        };
+
+
+        fmt::println("", c.head.id, " | ", curr_company_show," | ", c.first_name, c.last_name, " | ", positionDisp)!;
     };
 };
